@@ -94,22 +94,40 @@ preflight_checks() {
         fatal "/dev/shm не примонтирован" "Добавьте в docker-compose.yml: - /dev/shm:/dev/shm"
     log_ok "/dev/shm доступен"
 
-        # ─── УНИВЕРСАЛЬНЫЙ ПОИСК СЕРТИФИКАТОВ В /root/cert/ ───
+    # ─── ПОИСК СЕРТИФИКАТОВ: /root/cert/ → /etc/letsencrypt/live/ ───
     local cert_root="/root/cert"
-    [[ ! -d "$cert_root" ]] && fatal "Директория $cert_root не найдена"
+    local le_root="/etc/letsencrypt/live"
 
-    # Берём первую подпапку (домен), исключая скрытые и служебные
-    DOMAIN=$(find "$cert_root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -n1)
-    [[ -z "$DOMAIN" ]] && fatal "В $cert_root не найдено ни одной папки с доменом"
+    CERT_DIR=""
+    DOMAIN=""
 
-    CERT_DIR="$cert_root/$DOMAIN"
+    # Приоритет 1: /root/cert/<домен>/
+    if [[ -d "$cert_root" ]]; then
+        DOMAIN=$(find "$cert_root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -n1)
+        if [[ -n "$DOMAIN" && -f "$cert_root/$DOMAIN/fullchain.pem" && -f "$cert_root/$DOMAIN/privkey.pem" ]]; then
+            CERT_DIR="$cert_root/$DOMAIN"
+            log_ok "Сертификаты найдены в $cert_root для: $DOMAIN"
+        fi
+    fi
+
+    # Приоритет 2: /etc/letsencrypt/live/<домен>/
+    if [[ -z "$CERT_DIR" && -d "$le_root" ]]; then
+        DOMAIN=$(find "$le_root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | grep -v README | head -n1)
+        if [[ -n "$DOMAIN" && -f "$le_root/$DOMAIN/fullchain.pem" && -f "$le_root/$DOMAIN/privkey.pem" ]]; then
+            CERT_DIR="$le_root/$DOMAIN"
+            log_ok "Сертификаты найдены в $le_root для: $DOMAIN"
+        fi
+    fi
+
+    [[ -z "$CERT_DIR" ]] && fatal "Сертификаты не найдены" \
+        "Проверьте $cert_root или $le_root (нужны fullchain.pem и privkey.pem)"
+
     CERT_PATH="$CERT_DIR/fullchain.pem"
     KEY_PATH="$CERT_DIR/privkey.pem"
 
     [[ ! -f "$CERT_PATH" ]] && fatal "Файл сертификата не найден: $CERT_PATH"
     [[ ! -f "$KEY_PATH" ]] && fatal "Файл ключа не найден: $KEY_PATH"
-    log_ok "Сертификаты найдены для: $DOMAIN"
-    # ─── КОНЕЦ УНИВЕРСАЛЬНОГО БЛОКА ───
+    # ─── КОНЕЦ БЛОКА ПОИСКА ───
 
     if command -v ufw &>/dev/null; then
         local ufw_status
