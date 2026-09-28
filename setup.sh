@@ -94,17 +94,22 @@ preflight_checks() {
         fatal "/dev/shm не примонтирован" "Добавьте в docker-compose.yml: - /dev/shm:/dev/shm"
     log_ok "/dev/shm доступен"
 
-    local cert_dir="/etc/letsencrypt/live"
-    [[ ! -d "$cert_dir" ]] && fatal "Директория Let's Encrypt не найдена"
+        # ─── УНИВЕРСАЛЬНЫЙ ПОИСК СЕРТИФИКАТОВ В /root/cert/ ───
+    local cert_root="/root/cert"
+    [[ ! -d "$cert_root" ]] && fatal "Директория $cert_root не найдена"
 
-    DOMAIN=$(ls "$cert_dir" 2>/dev/null | grep -v README | head -n1)
-    [[ -z "$DOMAIN" ]] && fatal "Домен не найден в $cert_dir"
+    # Берём первую подпапку (домен), исключая скрытые и служебные
+    DOMAIN=$(find "$cert_root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -n1)
+    [[ -z "$DOMAIN" ]] && fatal "В $cert_root не найдено ни одной папки с доменом"
 
-    CERT_PATH="$cert_dir/$DOMAIN/fullchain.pem"
-    KEY_PATH="$cert_dir/$DOMAIN/privkey.pem"
+    CERT_DIR="$cert_root/$DOMAIN"
+    CERT_PATH="$CERT_DIR/fullchain.pem"
+    KEY_PATH="$CERT_DIR/privkey.pem"
 
-    [[ ! -f "$CERT_PATH" || ! -f "$KEY_PATH" ]] && fatal "Файлы сертификата отсутствуют"
+    [[ ! -f "$CERT_PATH" ]] && fatal "Файл сертификата не найден: $CERT_PATH"
+    [[ ! -f "$KEY_PATH" ]] && fatal "Файл ключа не найден: $KEY_PATH"
     log_ok "Сертификаты найдены для: $DOMAIN"
+    # ─── КОНЕЦ УНИВЕРСАЛЬНОГО БЛОКА ───
 
     if command -v ufw &>/dev/null; then
         local ufw_status
