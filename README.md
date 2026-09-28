@@ -14,12 +14,7 @@
 Перед запуском скрипта нода должна быть:
 
 ✅ Добавлена в панель Remnawave
-
-✅ Установлена через reverse-proxy от eGame
-
-Документация:
-
-https://github.com/eGamesAPI/remnawave-reverse-proxy/blob/main/README-RU.md
+✅ Изменена логика поиска сертификатов
 
 ---
 
@@ -158,6 +153,5 @@ https://rezzosoft.ru/converter.html
 
 ---
 
-# ❤️ Community
 
 Сделано для сообщества Remnawave.
