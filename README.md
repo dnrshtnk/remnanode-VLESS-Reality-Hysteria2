@@ -21,7 +21,7 @@
 # ⚡ Быстрая установка
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/Rrezzak09VPN/remnanode-VLESS-Reality-Hysteria2/main/setup.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/dnrshtnk/remnanode-VLESS-Reality-Hysteria2/refs/heads/main/setup.sh)
 ```
 
 ---
